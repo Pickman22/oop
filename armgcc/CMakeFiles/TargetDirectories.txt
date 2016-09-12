@@ -1,3 +1,0 @@
-/home/jorge/dev/C/embedded/projects/parsed_uart/armgcc/CMakeFiles/edit_cache.dir
-/home/jorge/dev/C/embedded/projects/parsed_uart/armgcc/CMakeFiles/rebuild_cache.dir
-/home/jorge/dev/C/embedded/projects/parsed_uart/armgcc/CMakeFiles/parsed_uart.elf.dir
