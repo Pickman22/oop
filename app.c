@@ -30,8 +30,11 @@ void main(void) {
     Uart_get_default_conf(&conf);
     Uart_init(&uart, &conf);
     while(1) {
-        Uart_write_byte(&uart, (uint8_t)'a');
-        LED_toggle(rled);
+        UART0->D = 'a';
+        Uart_write_byte(&uart, (uint8_t)'b');
+        LED_set(rled);
+        delay();
+        LED_clear(rled);
         delay();
     }
 }

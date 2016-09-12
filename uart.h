@@ -5,6 +5,9 @@
 #include "system_MKL25Z4.h"
 #include "pins.h"
 
+#define UART0_OSR 16
+
+
 typedef enum Stop_Bit_e {Stop_1bit_e=0U, Stop_2bit_e=1U} Stop_Bit_t;
 typedef enum Bit_Mode_e {Mode_8bits_e, Mode_9bits_e} Bit_Mode_t;
 typedef enum Loop_Mode_e {Mode_Normal_e=0U, Mode_Loop_e=1U} Loop_Mode_t;
