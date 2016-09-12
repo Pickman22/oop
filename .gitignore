@@ -1,1 +1,3 @@
-CMakeFiles/
+armgcc/CMakeFiles/
+armgcc/debug/
+armgcc/release/
