@@ -47,7 +47,6 @@ static const _uart_map_t _valid_uart_map[] = {
 
 int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
     int8_t ret = -1;
-    (void)params;
     PORT_Type* port;
     uint16_t uart_sbr;
     uint8_t idx;
@@ -58,8 +57,6 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
         if((_valid_uart_map[idx].rx_name == params->rx) &&
 -               (_valid_uart_map[idx].tx_name == params->tx))
         {
-            /* Set return code to 0 for now. */
-            ret = 0;
             uart = (UART_Type*)_valid_uart_map[idx].uart_register;
             register32_set_bits(&SIM->SCGC4, _valid_uart_map[idx].mask);
             mux = _valid_uart_map[idx].mux;
