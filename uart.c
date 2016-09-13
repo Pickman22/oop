@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define UART0_OSR 16U
+#define UART_SBR_MAX 8191U
+
 static const Uart_conf_t _uart_defualt_conf = {
     .bit_mode = Mode_8bits_e,
     .stop_bits = Stop_1bit_e,
@@ -46,7 +49,7 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
     int8_t ret = -1;
     (void)params;
     PORT_Type* port;
-    uint16_t divisor;
+    uint16_t uart_sbr;
     uint8_t idx;
     uint32_t mux;
     uint32_t pin;
@@ -55,6 +58,8 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
         if((_valid_uart_map[idx].rx_name == params->rx) &&
 -               (_valid_uart_map[idx].tx_name == params->tx))
         {
+            /* Set return code to 0 for now. */
+            ret = 0;
             uart = (UART_Type*)_valid_uart_map[idx].uart_register;
             register32_set_bits(&SIM->SCGC4, _valid_uart_map[idx].mask);
             mux = _valid_uart_map[idx].mux;
@@ -64,14 +69,22 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
                 register32_clear_then_set_bits(&SIM->SOPT2,
                                                SIM_SOPT2_UART0SRC_MASK,
                                                SIM_SOPT2_UART0SRC(1));
-                divisor = (SystemCoreClock / UART0_OSR) / params->baud_rate;
+                uart_sbr = (SystemCoreClock / UART0_OSR) / params->baud_rate;
                 register8_clear_then_set_bits(&uart->C4, UARTLP_C4_OSR_MASK,
                                               UARTLP_C4_OSR(SystemCoreClock-1));
             } else {
-                divisor = SystemCoreClock / 16U / params->baud_rate;
+                uart_sbr = SystemCoreClock / 16U / params->baud_rate;
             }
-            port = (PORT_Type*)_valid_uart_map[idx].port_register;
 
+            if(uart_sbr > UART_SBR_MAX) {
+                /* Desired baud rate cannot be attained. Uart handle not valid
+                anymore. */
+                uart = NULL;
+                ret = -1;
+                break;
+            }
+
+            port = (PORT_Type*)_valid_uart_map[idx].port_register;
             /* Select appropriate mux value to enable UART on pins */
             pin = _valid_uart_map[idx].tx;
             register32_clear_then_set_bits(&port->PCR[pin],
@@ -87,10 +100,10 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
             register8_write(&uart->S2, 0U);
 
             /* Write Baud Rate registers. */
-            register8_clear_then_set_bits(&uart->BDH, UARTLP_BDH_SBR_MASK,
-                                         (divisor >> 8U) & UARTLP_BDH_SBR_MASK);
-            register8_clear_then_set_bits(&uart->BDL, UARTLP_BDL_SBR_MASK,
-                                          divisor & UARTLP_BDL_SBR_MASK);
+            register8_clear_then_set_bits(&uart->BDH, UART_BDH_SBR_MASK,
+                                         (uart_sbr >> 8U) & UART_BDH_SBR_MASK);
+            register8_clear_then_set_bits(&uart->BDL, UART_BDL_SBR_MASK,
+                                          uart_sbr & UART_BDL_SBR_MASK);
 
             /* Re-enable Tx and Rx, and allow interrupts for
                Receive Data Register Full Flag. See p. 728. */
