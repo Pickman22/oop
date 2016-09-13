@@ -2,6 +2,17 @@
 #include "reg.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+
+static const Uart_conf_t _uart_defualt_conf = {
+    .bit_mode = Mode_8bits_e,
+    .stop_bits = Stop_1bit_e,
+    .baud_rate = Baud_9600_e,
+    .parity_mode = Parity_Even_e,
+    .parity_type = Parity_Disabled_e,
+    .tx = PTA2,
+    .rx = PTA1,
+};
 
 typedef struct _uart_map {
     uint32_t rx_name;
@@ -34,120 +45,59 @@ static const _uart_map_t _valid_uart_map[] = {
 int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
     int8_t ret = -1;
     (void)params;
-    PORT_Type* port = (PORT_Type*)PORTA_BASE;
-    uart = (UART_Type*)UART0_BASE;
+    PORT_Type* port;
+    uint16_t divisor;
+    uint8_t idx;
+    uint32_t mux;
+    uint32_t pin;
+    for(idx = 0; idx < (VALID_UART_MAP_SIZE - 1); idx++)
+    {
+        if((_valid_uart_map[idx].rx_name == params->rx) &&
+-               (_valid_uart_map[idx].tx_name == params->tx))
+        {
+            uart = (UART_Type*)_valid_uart_map[idx].uart_register;
+            register32_set_bits(&SIM->SCGC4, _valid_uart_map[idx].mask);
+            mux = _valid_uart_map[idx].mux;
+            if(uart == (UART_Type*)UART0_BASE)
+            {
+                /* Configure FLL/PLL Source. See p. 370. Only for UART0. */
+                register32_clear_then_set_bits(&SIM->SOPT2,
+                                               SIM_SOPT2_UART0SRC_MASK,
+                                               SIM_SOPT2_UART0SRC(1));
+                divisor = (SystemCoreClock / UART0_OSR) / params->baud_rate;
+                register8_clear_then_set_bits(&uart->C4, UARTLP_C4_OSR_MASK,
+                                              UARTLP_C4_OSR(SystemCoreClock-1));
+            } else {
+                divisor = SystemCoreClock / 16U / params->baud_rate;
+            }
+            port = (PORT_Type*)_valid_uart_map[idx].port_register;
 
-    SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;
+            /* Select appropriate mux value to enable UART on pins */
+            pin = _valid_uart_map[idx].tx;
+            register32_clear_then_set_bits(&port->PCR[pin],
+                                           PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
+            pin = _valid_uart_map[idx].rx;
+            register32_clear_then_set_bits(&port->PCR[pin],
+                                           PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
 
-    // Turn on clock to UART0 module and select 48Mhz clock (FLL/PLL source)
-    SIM->SCGC4 |= SIM_SCGC4_UART0_MASK;
-    SIM->SOPT2 &= ~SIM_SOPT2_UART0SRC_MASK;
-    SIM->SOPT2 |= SIM_SOPT2_UART0SRC(1);                 // FLL/PLL source
+            /* Register cleanup. */
+            register8_write(&uart->C2, 0U);
+            register8_write(&uart->C1, 0U);
+            register8_write(&uart->C3, 0U);
+            register8_write(&uart->S2, 0U);
 
-    // Select "Alt 2" usage to enable UART0 on pins
-    register32_clear_bits(&port->PCR[1], PORT_PCR_MUX_MASK);
-    register32_clear_bits(&port->PCR[2], PORT_PCR_MUX_MASK);
-    register32_set_bits(&port->PCR[1], PORT_PCR_MUX(2));
-    register32_set_bits(&port->PCR[2], PORT_PCR_MUX(2));
+            /* Write Baud Rate registers. */
+            register8_clear_then_set_bits(&uart->BDH, UARTLP_BDH_SBR_MASK,
+                                         (divisor >> 8U) & UARTLP_BDH_SBR_MASK);
+            register8_clear_then_set_bits(&uart->BDL, UARTLP_BDL_SBR_MASK,
+                                          divisor & UARTLP_BDL_SBR_MASK);
 
-    register8_write(&uart->C2, 0U);
-    register8_write(&uart->C1, 0U);
-    register8_write(&uart->C3, 0U);
-    register8_write(&uart->S2, 0U);
-
-    // Set the baud rate divisor
-    #define OVER_SAMPLE 16
-    uint16_t divisor = (SystemCoreClock / UART0_OSR) / params->baud_rate;
-
-    register8_clear_bits(&uart->C4, UARTLP_C4_OSR_MASK);
-    register8_set_bits(&uart->C4, UARTLP_C4_OSR(OVER_SAMPLE - 1));
-
-    register8_clear_bits(&uart->BDH, UARTLP_BDH_SBR_MASK);
-    register8_set_bits(&uart->BDH, (divisor >> 8) & UARTLP_BDH_SBR_MASK);
-
-    register8_clear_bits(&uart->BDL, UARTLP_BDL_SBR_MASK);
-    register8_set_bits(&uart->BDL, divisor & UARTLP_BDL_SBR_MASK);
-
-    register8_set_bits(&uart->C2, UARTLP_C2_RE_MASK | UARTLP_C2_TE_MASK |
-                       UART_C2_RIE_MASK);
-    return ret;
-}
-
-int8_t Uart_set_baud_rate(Uart_t* uart, Baud_Rate_t br) {
-    uint32_t tmp;
-    uint32_t busclk;
-    uint32_t regval;
-    int8_t ret = -1;
-    if((uart != (UART_Type*)UART0_BASE) && (br > 0U)) {
-        tmp = register32_read(&SIM->CLKDIV1);
-        tmp = (tmp & SIM_CLKDIV1_OUTDIV4_MASK) >> SIM_CLKDIV1_OUTDIV4_SHIFT;
-        busclk = SystemCoreClock / (tmp + 1U);
-        tmp = busclk / (16U * br);
-        /* BCR register is 13 bit wide. If the result is higher, then the
-        desired baud rate cannot be configured. */
-        if((tmp <= 0x1FFFU) && (tmp >= 1U)) {
-            regval = (tmp >> 8U) & UART_BDH_SBR_MASK;
-            register8_write(&uart->BDH, regval);
-            regval = tmp & UART_BDL_SBR_MASK;
-            register8_write(&uart->BDL, regval);
+            /* Re-enable Tx and Rx, and allow interrupts for
+               Receive Data Register Full Flag. See p. 728. */
+            register8_set_bits(&uart->C2, UART_C2_RE_MASK | UART_C2_TE_MASK |
+                               UART_C2_RIE_MASK);
             ret = 0;
         }
-    } else {
-
-    }
-    return ret;
-}
-
-int8_t Uart_set_stop_bit(Uart_t *uart, Stop_Bit_t stopbit) {
-    int8_t ret = -1;
-    if(uart) {
-        if(stopbit) {
-            /*  2-bit Stop */
-            register8_set_bits(&uart->BDH,  UART_BDH_SBNS_MASK);
-        } else {
-            /* 1-bit Stop */
-            register8_clear_bits(&uart->BDH, UART_BDH_SBNS_MASK);
-        }
-    }
-    return ret;
-}
-
-int8_t Uart_bit_mode(Uart_t* uart, Bit_Mode_t bitmode) {
-    int8_t ret = -1;
-    if(uart) {
-        if(bitmode) {
-            /*  9-bit Characters */
-            register8_set_bits(&uart->C1, UART_C1_M_MASK);
-        } else {
-            /* 8-bit Characters */
-            register8_clear_bits(&uart->C1, UART_C1_M_MASK);
-        }
-    }
-    return ret;
-}
-
-int8_t Uart_set_parity_type(Uart_t* uart, Parity_Type_t parity) {
-    int8_t ret = -1;
-    if(uart) {
-        if(parity) {
-            register8_set_bits(&uart->C1, UART_C1_PT_MASK);
-        } else {
-            register8_clear_bits(&uart->C1, UART_C1_PT_MASK);
-        }
-        ret = 0;
-    }
-    return ret;
-}
-
-int8_t Uart_set_parity_mode(Uart_t* uart, Parity_Mode_t mode) {
-    int8_t ret = -1;
-    if(uart) {
-        if(mode) {
-            register8_set_bits(&uart->C1, UART_C1_PE_MASK);
-        } else {
-            register8_clear_bits(&uart->C1, UART_C1_PE_MASK);
-        }
-        ret = 0;
     }
     return ret;
 }
@@ -155,18 +105,13 @@ int8_t Uart_set_parity_mode(Uart_t* uart, Parity_Mode_t mode) {
 int8_t Uart_get_default_conf(Uart_conf_t* conf) {
     int8_t ret = -1;
     if(conf) {
-        conf->bit_mode = Mode_8bits_e;
-        conf->stop_bits = Stop_1bit_e;
-        conf->baud_rate = Baud_9600_e;
-        conf->parity_mode = Parity_Even_e;
-        conf->parity_type = Parity_Disabled_e;
-        conf->tx = PTA2;
-        conf->rx = PTA1;
+        memcpy(conf, &_uart_defualt_conf, sizeof(Uart_conf_t));
+        ret = 0;
     }
     return ret;
 }
 
-int8_t Uart_write_byte(Uart_t* uart, uint8_t byte) {
+int8_t Uart_write(Uart_t* uart, uint8_t byte) {
     int8_t ret = -1;
     if(uart) {
         register8_write(&uart->D, byte);
@@ -175,7 +120,7 @@ int8_t Uart_write_byte(Uart_t* uart, uint8_t byte) {
     return ret;
 }
 
-uint8_t Uart_read_byte(Uart_t* uart) {
+uint8_t Uart_read(Uart_t* uart) {
     uint8_t byte = 0;
     if(uart) {
         byte = register8_read(&uart->D);
