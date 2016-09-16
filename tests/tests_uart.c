@@ -54,7 +54,6 @@ static void test_uart_init(void **state) {
         params.tx = _valid_uart_map[idx].tx_name;
         port = (PORT_Type*)_valid_uart_map[idx].port_register;
         uart = (Uart_t*)_valid_uart_map[idx].uart_register;
-        printf("New configuration...\n\r");
 
         /* Enable UART clock */
         expect_value(register32_set_bits, reg, &SIM->SCGC4);
@@ -62,33 +61,58 @@ static void test_uart_init(void **state) {
 
         /* Configure MUX for Tx/Rx */
         pin = _valid_uart_map[idx].rx;
-        expect_value(register32_set_bits, reg, &port->PCR[pin]);
-        expect_value(register32_set_bits, mask, PORT_PCR_MUX(_valid_uart_map[idx].mux));
+        if(uart == (Uart_t*)UART0_BASE)
+        {
+            expect_value(register32_clear_then_set_bits, reg, &SIM->SOPT2);
+            expect_value(register32_clear_then_set_bits,
+                         mask, SIM_SOPT2_UART0SRC_MASK);
+            expect_value(register32_clear_then_set_bits, val,
+                         SIM_SOPT2_UART0SRC(1));
+
+            expect_value(register8_clear_then_set_bits, reg, &uart->C4);
+            expect_value(register8_clear_then_set_bits,
+                         mask, UARTLP_C4_OSR_MASK);
+            expect_value(register8_clear_then_set_bits, val,
+                         UARTLP_C4_OSR(SystemCoreClock-1));
+            bcr = (SystemCoreClock / UART0_OSR) / params.baud_rate;
+
+        } else {
+            bcr = (SystemCoreClock / UART0_OSR) / params.baud_rate;
+        }
         pin = _valid_uart_map[idx].tx;
-        expect_value(register32_set_bits, reg, &port->PCR[pin]);
-        expect_value(register32_set_bits, mask, PORT_PCR_MUX(_valid_uart_map[idx].mux));
+        expect_value(register32_clear_then_set_bits, reg, &port->PCR[pin]);
+        expect_value(register32_clear_then_set_bits, val, PORT_PCR_MUX(_valid_uart_map[idx].mux));
+        expect_value(register32_clear_then_set_bits, mask, PORT_PCR_MUX_MASK);
 
-        /* Enable Tx/Rx */
-        expect_value(register8_set_bits, mask, UART_C2_TE_MASK | UART_C2_RE_MASK);
-        expect_value(register8_set_bits, reg, &uart->C2);
+        pin = _valid_uart_map[idx].rx;
+        expect_value(register32_clear_then_set_bits, reg, &port->PCR[pin]);
+        expect_value(register32_clear_then_set_bits, val, PORT_PCR_MUX(_valid_uart_map[idx].mux));
+        expect_value(register32_clear_then_set_bits, mask, PORT_PCR_MUX_MASK);
 
-        /* Compute BUS clock value. */
-        expect_value(register32_read, reg, &SIM->CLKDIV1);
-        will_return(register32_read, 0x10000); // Div value.
+        expect_value(register8_write, reg, &uart->C2);
+        expect_value(register8_write, val, 0U);
+
+        expect_value(register8_write, reg, &uart->C1);
+        expect_value(register8_write, val, 0U);
+
+        expect_value(register8_write, reg, &uart->C3);
+        expect_value(register8_write, val, 0U);
+
+        expect_value(register8_write, reg, &uart->S2);
+        expect_value(register8_write, val, 0U);
 
         /* Configure Baud Rate. */
-        expect_value(register8_write, reg, &uart->BDH);
-        expect_value(register8_write, value, (uint8_t)(bcr >> 0x08U));
+        expect_value(register8_clear_then_set_bits, reg, &uart->BDH);
+        expect_value(register8_clear_then_set_bits, mask, UART_BDH_SBR_MASK);
+        expect_value(register8_clear_then_set_bits, val, (uint8_t)(bcr >> 0x08U));
 
-        expect_value(register8_write, reg, &uart->BDL);
-        expect_value(register8_write, value, (uint8_t)bcr);
+        expect_value(register8_clear_then_set_bits, reg, &uart->BDL);
+        expect_value(register8_clear_then_set_bits, mask, UART_BDL_SBR_MASK);
+        expect_value(register8_clear_then_set_bits, val, (uint8_t)bcr);
 
-        /* Configure Parity. */
-        expect_value(register8_clear_bits, reg, &uart->C1);
-        expect_value(register8_clear_bits, mask, UART_C1_PT_MASK); // Parity type.
-
-        expect_value(register8_clear_bits, reg, &uart->C1);
-        expect_value(register8_clear_bits, mask, UART_C1_PE_MASK); // Parity mode.
+        expect_value(register8_set_bits, reg, &uart->C2);
+        expect_value(register8_set_bits, mask, UART_C2_RE_MASK |
+                     UART_C2_TE_MASK | UART_C2_RIE_MASK);
         assert_int_equal(0, Uart_init(uart, &params));
     }
 }
@@ -104,34 +128,43 @@ static void test_invalid_uart_returns_error(void **state) {
     }
 }
 
-static void test_uart_set_baud_rate(void **state) {
-    Baud_Rate_t valid_rates[] = {
-        Baud_300_e,
-        Baud_4800_e,
-        Baud_115200_e,
-        Baud_19200_e
-    };
-    uint8_t idx;
-    uint32_t bcr;
-    Uart_t* uart = (Uart_t*)UART1_BASE;
-    will_return_always(register32_read, 0x10000);
-    for(idx = 0; idx < sizeof(valid_rates) / sizeof(Baud_Rate_t); ++idx) {
-        bcr = 0x1FFF & (24000000U / valid_rates[idx] / 16U);
-        expect_value(register8_write, value, (uint8_t)(bcr >> 0x08U));
-        expect_value(register8_write, value, (uint8_t)bcr);
-        assert_int_equal(0, Uart_set_baud_rate(uart, valid_rates[idx]));
-    }
-    /* Test invalid baud rate configurations. */
-    assert_int_equal(-1, Uart_set_baud_rate(uart, 0));
-    assert_int_equal(-1, Uart_set_baud_rate(uart, 0xFFFFFFFF));
+static void test_uart_putc_returns_error(void **state) {
+
+}
+
+static void test_uart_putc_returns_no_error(void **state) {
+
+}
+
+static void test_uart_getc_returns_error(void **state) {
+
+}
+
+static void test_uart_getc_returns_no_error(void **state) {
+
+}
+
+static void test_uart_gets_returns_error(void **state) {
+
+}
+
+static void test_uart_gets_returns_no_error(void **state) {
+    
+}
+
+static void test_uart_puts_returns_error(void **state) {
+
+}
+
+static void test_uart_puts_returns_no_error(void **state) {
+
 }
 
 int main(void) {
     const struct CMUnitTest tests[] = {
-        //cmocka_unit_test(test_null_arguments_returns_error),
+        cmocka_unit_test(test_null_arguments_returns_error),
         cmocka_unit_test(test_uart_init),
-        //cmocka_unit_test(test_invalid_uart_returns_error),
-        //cmocka_unit_test(test_uart_set_baud_rate),
+        cmocka_unit_test(test_invalid_uart_returns_error),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

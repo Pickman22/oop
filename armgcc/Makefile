@@ -456,6 +456,33 @@ home/jorge/dev/C/embedded/projects/parsed_uart/led.c.s:
 	$(MAKE) -f CMakeFiles/parsed_uart.elf.dir/build.make CMakeFiles/parsed_uart.elf.dir/home/jorge/dev/C/embedded/projects/parsed_uart/led.c.s
 .PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/led.c.s
 
+home/jorge/dev/C/embedded/projects/parsed_uart/log.obj: home/jorge/dev/C/embedded/projects/parsed_uart/log.c.obj
+
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.obj
+
+# target to build an object file
+home/jorge/dev/C/embedded/projects/parsed_uart/log.c.obj:
+	$(MAKE) -f CMakeFiles/parsed_uart.elf.dir/build.make CMakeFiles/parsed_uart.elf.dir/home/jorge/dev/C/embedded/projects/parsed_uart/log.c.obj
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.c.obj
+
+home/jorge/dev/C/embedded/projects/parsed_uart/log.i: home/jorge/dev/C/embedded/projects/parsed_uart/log.c.i
+
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.i
+
+# target to preprocess a source file
+home/jorge/dev/C/embedded/projects/parsed_uart/log.c.i:
+	$(MAKE) -f CMakeFiles/parsed_uart.elf.dir/build.make CMakeFiles/parsed_uart.elf.dir/home/jorge/dev/C/embedded/projects/parsed_uart/log.c.i
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.c.i
+
+home/jorge/dev/C/embedded/projects/parsed_uart/log.s: home/jorge/dev/C/embedded/projects/parsed_uart/log.c.s
+
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.s
+
+# target to generate assembly for a file
+home/jorge/dev/C/embedded/projects/parsed_uart/log.c.s:
+	$(MAKE) -f CMakeFiles/parsed_uart.elf.dir/build.make CMakeFiles/parsed_uart.elf.dir/home/jorge/dev/C/embedded/projects/parsed_uart/log.c.s
+.PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/log.c.s
+
 home/jorge/dev/C/embedded/projects/parsed_uart/reg.obj: home/jorge/dev/C/embedded/projects/parsed_uart/reg.c.obj
 
 .PHONY : home/jorge/dev/C/embedded/projects/parsed_uart/reg.obj
@@ -556,6 +583,9 @@ help:
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/led.obj"
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/led.i"
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/led.s"
+	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/log.obj"
+	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/log.i"
+	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/log.s"
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/reg.obj"
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/reg.i"
 	@echo "... home/jorge/dev/C/embedded/projects/parsed_uart/reg.s"

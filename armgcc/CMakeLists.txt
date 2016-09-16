@@ -299,6 +299,8 @@ add_executable(${ProjName}.elf
 "${ProjDirPath}/../pins.h"
 "${ProjDirPath}/../reg.h"
 "${ProjDirPath}/../reg.c"
+"${ProjDirPath}/../log.h"
+"${ProjDirPath}/../log.c"
 
 "${Kl25zSdkPath}/devices/MKL25Z4/drivers/fsl_common.h"
 "${Kl25zSdkPath}/devices/MKL25Z4/drivers/fsl_common.c"

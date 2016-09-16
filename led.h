@@ -6,9 +6,7 @@
 
 typedef enum LED_enum {LED_red_e, LED_blue_e, LED_green_e} LED_e;
 
-typedef struct LED_struct {
-    Gpio_t _gpio;
-}LED_t;
+typedef Gpio_t LED_t;
 
 LED_t* LED_get_instance(LED_e led);
 

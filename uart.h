@@ -5,6 +5,10 @@
 #include "system_MKL25Z4.h"
 #include "pins.h"
 
+#define UART0_OSR 16U
+#define UART_SBR_MAX 8191U
+#define UART_STRING_SIZE_MAX 65535U
+
 typedef enum Stop_Bit_e {Stop_1bit_e=0U, Stop_2bit_e=1U} Stop_Bit_t;
 typedef enum Bit_Mode_e {Mode_8bits_e, Mode_9bits_e} Bit_Mode_t;
 typedef enum Loop_Mode_e {Mode_Normal_e=0U, Mode_Loop_e=1U} Loop_Mode_t;
@@ -37,9 +41,15 @@ typedef struct Uart_conf_s {
 
 int8_t Uart_init(Uart_t* uart, Uart_conf_t* params);
 
-int8_t Uart_write(Uart_t* uart, uint8_t byte);
+int8_t Uart_putc(Uart_t* uart, char c);
 
-uint8_t Uart_read(Uart_t* uart);
+int8_t Uart_puts(Uart_t* uart, char* msg);
+
+char Uart_getc(Uart_t* uart);
+
+int8_t Uart_gets(Uart_t* uart, char* msg);
+
+
 
 /*
 int8_t Uart_set_baud_rate(Uart_t* uart, Baud_Rate_t br);

@@ -2,3 +2,4 @@ armgcc/CMakeFiles/
 armgcc/debug/
 armgcc/release/
 armgcc/CMakeCache.txt
+armgcc/Makefile
