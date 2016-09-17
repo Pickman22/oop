@@ -39,7 +39,7 @@ typedef struct Uart_conf_s {
     uint32_t rx;
 } Uart_conf_t;
 
-int8_t Uart_init(Uart_t* uart, Uart_conf_t* params);
+Uart_t* Uart_init(Uart_conf_t params);
 
 int8_t Uart_putc(Uart_t* uart, char c);
 
@@ -57,6 +57,6 @@ uint8_t Uart_read(Uart_t* uart);
 
 int8_t Uart_read_bytes(Uart_t* uart, uint8_t* bytes, uint32_t size);
 
-int8_t Uart_get_default_conf(Uart_conf_t* conf);
+Uart_conf_t Uart_get_default_conf(void);
 
 #endif // UART_H

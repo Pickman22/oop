@@ -14,6 +14,7 @@ static const Uart_conf_t _uart_defualt_conf = {
     .rx = PTA1,
 };
 
+
 typedef struct _uart_map {
     uint32_t rx_name;
     uint32_t tx_name;
@@ -42,74 +43,69 @@ static const _uart_map_t _valid_uart_map[] = {
 
 #define VALID_UART_MAP_SIZE (sizeof(_valid_uart_map) / sizeof(_uart_map_t))
 
-int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
-    int8_t ret = -1;
+Uart_t* Uart_init(Uart_conf_t params) {
+    Uart_t* uart = NULL;
     PORT_Type* port;
     uint16_t uart_sbr;
     uint8_t idx;
     uint32_t mux;
     uint32_t pin;
-    if(uart && params) {
-        for(idx = 0; idx < (VALID_UART_MAP_SIZE - 1); idx++)
+    for(idx = 0; idx < (VALID_UART_MAP_SIZE - 1); idx++)
+    {
+        if((_valid_uart_map[idx].rx_name == params.rx) &&
+-               (_valid_uart_map[idx].tx_name == params.tx))
         {
-            if((_valid_uart_map[idx].rx_name == params->rx) &&
-    -               (_valid_uart_map[idx].tx_name == params->tx))
+            uart = (UART_Type*)_valid_uart_map[idx].uart_register;
+            register32_set_bits(&SIM->SCGC4, _valid_uart_map[idx].mask);
+            mux = _valid_uart_map[idx].mux;
+            if(uart == (UART_Type*)UART0_BASE)
             {
-                uart = (UART_Type*)_valid_uart_map[idx].uart_register;
-                register32_set_bits(&SIM->SCGC4, _valid_uart_map[idx].mask);
-                mux = _valid_uart_map[idx].mux;
-                if(uart == (UART_Type*)UART0_BASE)
-                {
-                    /* Configure FLL/PLL Source. See p. 370. Only for UART0. */
-                    register32_clear_then_set_bits(&SIM->SOPT2,
-                                                   SIM_SOPT2_UART0SRC_MASK,
-                                                   SIM_SOPT2_UART0SRC(1));
-                    uart_sbr = SystemCoreClock / UART0_OSR / params->baud_rate;
-                    register8_clear_then_set_bits(&uart->C4, UARTLP_C4_OSR_MASK,
-                                                  UARTLP_C4_OSR(SystemCoreClock-1));
-                } else {
-                    uart_sbr = SystemCoreClock / 16U / params->baud_rate;
-                }
-
-                if(uart_sbr > UART_SBR_MAX) {
-                    /* Desired baud rate cannot be attained. Uart handle not valid
-                    anymore. */
-                    uart = NULL;
-                    ret = -1;
-                    break;
-                }
-
-                port = (PORT_Type*)_valid_uart_map[idx].port_register;
-                /* Select appropriate mux value to enable UART on pins */
-                pin = _valid_uart_map[idx].tx;
-                register32_clear_then_set_bits(&port->PCR[pin],
-                                               PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
-                pin = _valid_uart_map[idx].rx;
-                register32_clear_then_set_bits(&port->PCR[pin],
-                                               PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
-
-                /* Register cleanup. */
-                register8_write(&uart->C2, 0U);
-                register8_write(&uart->C1, 0U);
-                register8_write(&uart->C3, 0U);
-                register8_write(&uart->S2, 0U);
-
-                /* Write Baud Rate registers. */
-                register8_clear_then_set_bits(&uart->BDH, UART_BDH_SBR_MASK,
-                                             (uart_sbr >> 8U) & UART_BDH_SBR_MASK);
-                register8_clear_then_set_bits(&uart->BDL, UART_BDL_SBR_MASK,
-                                              uart_sbr & UART_BDL_SBR_MASK);
-
-                /* Re-enable Tx and Rx, and allow interrupts for
-                   Receive Data Register Full Flag. See p. 728. */
-                register8_set_bits(&uart->C2, UART_C2_RE_MASK | UART_C2_TE_MASK |
-                                   UART_C2_RIE_MASK);
-                ret = 0;
+                /* Configure FLL/PLL Source. See p. 370. Only for UART0. */
+                register32_clear_then_set_bits(&SIM->SOPT2,
+                                               SIM_SOPT2_UART0SRC_MASK,
+                                               SIM_SOPT2_UART0SRC(1));
+                uart_sbr = SystemCoreClock / UART0_OSR / params.baud_rate;
+                register8_clear_then_set_bits(&uart->C4, UARTLP_C4_OSR_MASK,
+                                              UARTLP_C4_OSR(SystemCoreClock-1));
+            } else {
+                uart_sbr = SystemCoreClock / 16U / params.baud_rate;
             }
+
+            if(uart_sbr > UART_SBR_MAX) {
+                /* Desired baud rate cannot be attained. Uart handle not valid
+                anymore. */
+                uart = NULL;
+                break;
+            }
+
+            port = (PORT_Type*)_valid_uart_map[idx].port_register;
+            /* Select appropriate mux value to enable UART on pins */
+            pin = _valid_uart_map[idx].tx;
+            register32_clear_then_set_bits(&port->PCR[pin],
+                                           PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
+            pin = _valid_uart_map[idx].rx;
+            register32_clear_then_set_bits(&port->PCR[pin],
+                                           PORT_PCR_MUX_MASK,PORT_PCR_MUX(mux));
+
+            /* Register cleanup. */
+            register8_write(&uart->C2, 0U);
+            register8_write(&uart->C1, 0U);
+            register8_write(&uart->C3, 0U);
+            register8_write(&uart->S2, 0U);
+
+            /* Write Baud Rate registers. */
+            register8_clear_then_set_bits(&uart->BDH, UART_BDH_SBR_MASK,
+                                         (uart_sbr >> 8U) & UART_BDH_SBR_MASK);
+            register8_clear_then_set_bits(&uart->BDL, UART_BDL_SBR_MASK,
+                                          uart_sbr & UART_BDL_SBR_MASK);
+
+            /* Re-enable Tx and Rx, and allow interrupts for
+               Receive Data Register Full Flag. See p. 728. */
+            register8_set_bits(&uart->C2, UART_C2_RE_MASK | UART_C2_TE_MASK |
+                               UART_C2_RIE_MASK);
         }
     }
-
-    return ret;
+    return uart;
 }
 
 int8_t Uart_write(Uart_t* uart, uint8_t byte) {
@@ -153,13 +149,10 @@ int8_t Uart_read_bytes(Uart_t* uart, uint8_t* bytes, uint32_t size) {
     return ret;
 }
 
-int8_t Uart_get_default_conf(Uart_conf_t* conf) {
-    int8_t ret = -1;
-    if(conf) {
-        memcpy(conf, &_uart_defualt_conf, sizeof(Uart_conf_t));
-        ret = 0;
-    }
-    return ret;
+Uart_conf_t Uart_get_default_conf(void) {
+    Uart_conf_t conf;
+    memcpy(&conf, &_uart_defualt_conf, sizeof(Uart_conf_t));
+    return conf;
 }
 
 int8_t Uart_putc(Uart_t* uart, char byte) {

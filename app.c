@@ -24,14 +24,13 @@ void init(void) {
 
 void main(void) {
     init();
-    Uart_conf_t conf;
-    Uart_t uart;
+    Uart_conf_t conf = Uart_get_default_conf();
+    Uart_t* uart = Uart_init(conf);
     LED_t* rled = LED_get_instance(LED_red_e);
-    Uart_get_default_conf(&conf);
-    Uart_init(&uart, &conf);
     while(1) {
         UART0->D = 'a';
-        Uart_putc(&uart, (uint8_t)'b');
+        delay();
+        Uart_write(uart, 'z');
         LED_set(rled);
         delay();
         LED_clear(rled);

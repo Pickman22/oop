@@ -20,17 +20,17 @@ LED_t* LED_get_instance(LED_e led) {
     switch(led) {
         case LED_red_e:
             ret = &_rled;
-            Gpio_init((Gpio_t*)&_rled, Gpio_Output_e, LED_DEFAULT_STATE);
+            Gpio_init(&_rled, Gpio_Output_e, LED_DEFAULT_STATE);
         break;
 
         case LED_blue_e:
             ret = &_bled;
-            Gpio_init((Gpio_t*)&_bled, Gpio_Output_e, LED_DEFAULT_STATE);
+            Gpio_init(&_bled, Gpio_Output_e, LED_DEFAULT_STATE);
         break;
 
         case LED_green_e:
             ret = &_gled;
-            Gpio_init((Gpio_t*)&_gled, Gpio_Output_e, LED_DEFAULT_STATE);
+            Gpio_init(&_gled, Gpio_Output_e, LED_DEFAULT_STATE);
         break;
 
         default:
@@ -44,9 +44,9 @@ int8_t LED_set_output(LED_t* led, uint8_t val) {
     if(led != NULL) {
         ret = 0;
         if(val) {
-            Gpio_set((Gpio_t*)&led);
+            Gpio_set(led);
         } else {
-            Gpio_clear((Gpio_t*)&led);
+            Gpio_clear(led);
         }
     }
     return ret;
@@ -56,7 +56,7 @@ int8_t LED_set(LED_t* led) {
     int8_t ret = -1;
     if(led != NULL) {
         ret = 0;
-        Gpio_set((Gpio_t*)&led);
+        Gpio_set(led);
     }
     return ret;
 }
@@ -65,7 +65,7 @@ int8_t LED_clear(LED_t* led) {
     int8_t ret = -1;
     if(led != NULL) {
         ret = 0;
-        Gpio_clear((Gpio_t*)&led);
+        Gpio_clear(led);
     }
     return ret;
 }
@@ -74,7 +74,7 @@ int8_t LED_toggle(LED_t* led) {
     int8_t ret = -1;
     if(led != NULL) {
         ret = 0;
-        Gpio_toggle((Gpio_t*)&led);
+        Gpio_toggle(led);
     }
     return ret;
 }
