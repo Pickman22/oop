@@ -7,71 +7,71 @@ static PORT_Type* _port_base_ptrs[] = PORT_BASE_PTRS;
 
 #define NUMBER_OF_GPIO_PORTS 5
 
-int8_t Gpio_init(Gpio_t* gpio, Gpio_Direction_e dir, Gpio_Logic_e value) {
-    uint8_t i;
-    int8_t ret = -1;
-    for(i = 0U; ((i < NUMBER_OF_GPIO_PORTS) && (gpio != NULL)); ++i)
-    {
-        if (gpio->port == _gpio_base_ptrs[i]) {
-            /* Provided port is valid. */
-            ret = 0U;
-            /* Configure mux as digital output. */
-            _port_base_ptrs[i]->PCR[gpio->pin] = PORT_PCR_MUX(1);
-            Gpio_set_direction(gpio, dir);
-            Gpio_set_output(gpio, value);
-            break;
-        }
-    }
-    return ret;
-}
+#define MAP_PIN_TO_PORT_INDEX(pin) (((uint32_t)pin >> 12U) & 0x0000000F)
+#define MAP_PINNAME_TO_NUMBER(pin) ((pin & 0x000000FF) / 4U)
 
-int8_t Gpio_set(Gpio_t* gpio) {
+int8_t Gpio_init(PinName pin_name, Gpio_Direction_e dir, Gpio_Logic_e value) {
     int8_t ret = -1;
-    if((gpio != NULL) && (gpio->pin < 32U)) {
-        register32_set_bits(&gpio->port->PSOR, 1U << gpio->pin);
+    uint8_t i = MAP_PIN_TO_PORT_INDEX(pin_name);
+    uint8_t pin_number = MAP_PINNAME_TO_NUMBER(pin_name);
+    if(i < NUMBER_OF_GPIO_PORTS) {
+        PORT_Type* port = _port_base_ptrs[i];
+        port->PCR[pin_number] = PORT_PCR_MUX(1U);
+        Gpio_set_direction(pin_name, dir);
+        Gpio_set_output(pin_name, value);
         ret = 0U;
     }
     return ret;
 }
 
-int8_t Gpio_clear(Gpio_t* gpio) {
+int8_t Gpio_set(PinName pin) {
     int8_t ret = -1;
-    if((gpio != NULL) && (gpio->pin < 32U)) {
-        register32_set_bits(&gpio->port->PCOR, 1U << gpio->pin);
+    uint8_t i = MAP_PIN_TO_PORT_INDEX(pin);
+    uint8_t pin_number = MAP_PINNAME_TO_NUMBER(pin);
+    GPIO_Type* port = _gpio_base_ptrs[i];
+    if(i < NUMBER_OF_GPIO_PORTS) {
+        register32_set_bits(&port->PSOR, 1U << pin_number);
         ret = 0U;
     }
     return ret;
 }
 
-int8_t Gpio_toggle(Gpio_t* gpio) {
+int8_t Gpio_clear(PinName pin) {
     int8_t ret = -1;
-    if((gpio != NULL) && (gpio->pin < 32U)) {
-        register32_set_bits(&gpio->port->PTOR, 1U << gpio->pin);
+    uint8_t i = MAP_PIN_TO_PORT_INDEX(pin);
+    uint8_t pin_number = MAP_PINNAME_TO_NUMBER(pin);
+    GPIO_Type* port = _gpio_base_ptrs[i];
+    if(i < NUMBER_OF_GPIO_PORTS) {
+        register32_set_bits(&port->PCOR, 1U << pin_number);
         ret = 0U;
     }
     return ret;
 }
 
-int8_t Gpio_set_output(Gpio_t* gpio, Gpio_Logic_e val) {
+int8_t Gpio_toggle(PinName pin) {
     int8_t ret = -1;
-    if((gpio != NULL) && (gpio->pin < 32U)) {
-        if(val) {
-            Gpio_set(gpio);
-        } else {
-            Gpio_clear(gpio);
-        }
+    uint8_t i = MAP_PIN_TO_PORT_INDEX(pin);
+    uint8_t pin_number = MAP_PINNAME_TO_NUMBER(pin);
+    GPIO_Type* port = _gpio_base_ptrs[i];
+    if(i < NUMBER_OF_GPIO_PORTS) {
+        register32_set_bits(&port->PTOR, 1U << pin_number);
+        ret = 0U;
     }
     return ret;
 }
 
-int8_t Gpio_set_direction(Gpio_t* gpio, Gpio_Direction_e dir) {
+int8_t Gpio_set_output(PinName pin, Gpio_Logic_e val) {
+    return val ? Gpio_set(pin) : Gpio_clear(pin);
+}
+
+int8_t Gpio_set_direction(PinName pin, Gpio_Direction_e dir) {
     int8_t ret = -1;
-    if((gpio != NULL) && (gpio->pin < 32U)) {
-        if(dir) {
-            register32_set_bits(&gpio->port->PDDR, 1U << gpio->pin);
-        } else {
-            register32_clear_bits(&gpio->port->PDDR, 1U << gpio->pin);
-        }
+    uint8_t i = MAP_PIN_TO_PORT_INDEX(pin);
+    uint8_t pin_number = MAP_PINNAME_TO_NUMBER(pin);
+    GPIO_Type* port = _gpio_base_ptrs[i];
+    if(i < NUMBER_OF_GPIO_PORTS) {
+        ret = dir ? register32_set_bits(&port->PDDR, 1U << pin_number) :
+                    register32_clear_bits(&port->PDDR, 1U << pin_number);
     }
     return ret;
 }

@@ -3,26 +3,20 @@
 #include <assert.h>
 #include <stddef.h>
 
-static Uart_t _uart = {0};
-static uint8_t _logger_is_init = 0;
-
+static Uart_t* _uart = NULL;
 static Log_Level_e _module_levels[LOGGER_SIZE] = {Log_Off_e};
 
 void _logger_write(char* msg) {
     /* Write the string to the interface. */
-    if(_logger_is_init && msg) {
-        Uart_puts(&_uart, msg);
+    if(_uart && msg) {
+        Uart_puts(_uart, msg);
     }
 }
 
 void Log_init() {
     /* Initialize the logging interface. */
-    Uart_conf_t params;
-    Uart_get_default_conf(&params);
-    if(Uart_init(&_uart, &params) == 0) {
-        _logger_is_init = 1U;
-    }
-
+    Uart_conf_t params = Uart_get_default_conf();
+    _uart = Uart_init(params);
 }
 
 void Log_set_level(Log_ID_t id, Log_Level_e lvl) {
@@ -32,10 +26,10 @@ void Log_set_level(Log_ID_t id, Log_Level_e lvl) {
 }
 
 void Log(Log_ID_t id, Log_Level_e lvl, char* msg) {
-    if((id < LOGGER_SIZE) && _logger_is_init && msg) {
+    if((id < LOGGER_SIZE) && _uart && msg) {
         if ((lvl >= _module_levels[id]) && _module_levels[id] != Log_Off_e)
         {
-            switch(_module_levels[id])
+            switch(lvl)
             {
                 case Log_Debug_e:
                     _logger_write("[DEBUG]: ");

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define IS_UART_TX_FULL(uart) (!(register8_read(&uart->S1) & UART_S1_TDRE_MASK))
+
 static const Uart_conf_t _uart_defualt_conf = {
     .bit_mode = Mode_8bits_e,
     .stop_bits = Stop_1bit_e,
@@ -111,6 +113,7 @@ Uart_t* Uart_init(Uart_conf_t params) {
 int8_t Uart_write(Uart_t* uart, uint8_t byte) {
     int8_t ret = -1;
     if(uart) {
+        while(IS_UART_TX_FULL(uart));
         register8_write(&uart->D, byte);
         ret = 0;
     }

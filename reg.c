@@ -31,7 +31,7 @@ int8_t register32_clear_bits(volatile uint32_t* reg, uint32_t mask) {
     return ret;
 }
 
-uint32_t register32_read(volatile uint32_t* reg) {
+uint32_t register32_read(const volatile uint32_t* reg) {
     uint32_t ret = 0;
     if(reg) {
         ret = *reg;
@@ -82,7 +82,7 @@ int8_t register16_clear_bits(volatile uint16_t* reg, uint16_t mask) {
     return ret;
 }
 
-uint16_t register16_read(volatile uint16_t* reg) {
+uint16_t register16_read(const volatile uint16_t* reg) {
     uint16_t ret = 0;
     if(reg) {
         ret = *reg;
@@ -133,7 +133,7 @@ int8_t register8_clear_bits(volatile uint8_t* reg, uint8_t mask) {
     return ret;
 }
 
-uint8_t register8_read(volatile uint8_t* reg) {
+uint8_t register8_read(const volatile uint8_t* reg) {
     uint8_t ret = 0;
     if(reg) {
         ret = *reg;

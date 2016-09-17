@@ -25,7 +25,7 @@ int8_t register32_clear_bits(volatile uint32_t* reg, uint32_t mask) {
     return 0;
 }
 
-uint32_t register32_read(volatile uint32_t* reg) {
+uint32_t register32_read(const volatile uint32_t* reg) {
     check_expected(reg);
     return mock_type(uint32_t);
 }
@@ -45,7 +45,7 @@ int8_t register16_clear_bits(volatile uint16_t* reg, uint16_t mask) {
     return 0;
 }
 
-uint16_t register16_read(volatile uint16_t* reg) {
+uint16_t register16_read(const volatile uint16_t* reg) {
     check_expected(reg);
     return mock_type(uint16_t);
 }
@@ -71,7 +71,7 @@ int8_t register8_clear_bits(volatile uint8_t* reg, uint8_t mask) {
     return 0;
 }
 
-uint8_t register8_read(volatile uint8_t* reg) {
+uint8_t register8_read(const volatile uint8_t* reg) {
     check_expected(reg);
     return mock_type(uint8_t);
 }
