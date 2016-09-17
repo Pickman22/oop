@@ -129,42 +129,199 @@ static void test_invalid_uart_returns_error(void **state) {
 }
 
 static void test_uart_putc_returns_error(void **state) {
-
+    (void)state;
+    assert_int_equal(-1, Uart_putc(NULL, ' '));
 }
 
 static void test_uart_putc_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    expect_value(register8_write, reg, &uart.D);
+    expect_value(register8_write, val, ' ');
+    assert_int_equal(0, Uart_putc(&uart, ' '));
+}
 
+static void test_uart_write_returns_error(void **state) {
+    (void)state;
+    assert_int_equal(-1, Uart_write(NULL, ' '));
+}
+
+static void test_uart_write_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    expect_value(register8_write, reg, &uart.D);
+    expect_value(register8_write, val, ' ');
+    assert_int_equal(0, Uart_write(&uart, ' '));
+}
+
+static void test_uart_write_bytes_returns_error(void **state) {
+    (void)state;
+    assert_int_equal(-1, Uart_write_bytes(NULL, NULL, 0));
+}
+
+static void test_uart_write_bytes_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    uint8_t bytes[24] = {0};
+    uint8_t bytes_size = sizeof(bytes) / sizeof(uint8_t);
+    int idx;
+    for(idx = 0; idx < bytes_size; ++idx) {
+        expect_value(register8_write, reg, &uart.D);
+        expect_value(register8_write, val, bytes[idx]);
+    }
+    assert_int_equal(0, Uart_write_bytes(&uart, bytes, bytes_size));
+}
+
+static void test_uart_read_returns_error(void **state) {
+    (void)state;
+    assert_int_equal(0, Uart_read(NULL));
+}
+
+static void test_uart_read_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    will_return(register8_read, ' ');
+    expect_value(register8_read, reg, &uart.D);
+    assert_int_equal(' ', Uart_read(&uart));
+}
+
+static void test_uart_read_bytes_returns_error(void **state) {
+    (void)state;
+    assert_int_equal(-1, Uart_read_bytes(NULL, NULL, 0));
+}
+
+static void test_uart_read_bytes_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    uint8_t bytes[64];
+    uint8_t validate_bytes[64];
+    uint8_t bytes_size = sizeof(bytes) / sizeof(uint8_t);
+    int idx;
+    memset(bytes, 1, bytes_size);
+    memset(validate_bytes, 1, bytes_size);
+    for(idx = 0; idx < bytes_size; ++idx) {
+        will_return(register8_read, bytes[idx]);
+        expect_value(register8_read, reg, &uart.D);
+    }
+    assert_int_equal(0, Uart_read_bytes(&uart, validate_bytes, bytes_size));
+    for(idx = 0; idx < bytes_size; ++idx) {
+        assert_int_equal(validate_bytes[idx], bytes[idx]);
+    }
 }
 
 static void test_uart_getc_returns_error(void **state) {
-
+    (void)state;
+    assert_int_equal(0, Uart_getc(NULL));
 }
 
 static void test_uart_getc_returns_no_error(void **state) {
-
+    (void)state;
+    Uart_t uart;
+    will_return(register8_read, ' ');
+    expect_value(register8_read, reg, &uart.D);
+    assert_int_equal(' ', Uart_getc(&uart));
 }
 
 static void test_uart_gets_returns_error(void **state) {
-
+    (void)state;
+    assert_int_equal(-1, Uart_gets(NULL, NULL));
 }
 
 static void test_uart_gets_returns_no_error(void **state) {
-    
+    (void)state;
+    Uart_t uart;
+    char msg[] = "This is a test!";
+    uint8_t msg_size = sizeof(msg) / sizeof(char);
+    char validate_msg[32] = {0};
+    int idx;
+    for(idx = 0; idx < msg_size; ++idx) {
+        will_return(register8_read, msg[idx]);
+        expect_value(register8_read, reg, &uart.D);
+    }
+    assert_int_equal(0, Uart_gets(&uart, validate_msg));
+    for(idx = 0; idx < msg_size; ++idx) {
+        assert_int_equal(validate_msg[idx], msg[idx]);
+    }
+}
+
+static void test_uart_gets_returns_error_if_string_exceeds_max_size(void **state)
+{
+    char msg[UART_STRING_SIZE_MAX + 1];
+    char validate_msg[UART_STRING_SIZE_MAX + 1] = {'\0'};
+    Uart_t uart;
+    uint16_t idx;
+    uint16_t msg_size = sizeof(msg) / sizeof(char);
+    memset(msg, 'x', msg_size);
+
+    /* The -1 accounts for the fact that Uart_gets will return the error code
+    once UART_STRING_SIZE_MAX values are read. Thus, CMOCKA will complain that
+    there's one unread item for register8_read function. */
+    for(idx = 0; idx < (msg_size - 1); ++idx) {
+        will_return(register8_read, msg[idx]);
+        expect_value(register8_read, reg, &uart.D);
+    }
+    assert_int_equal(-1, Uart_gets(&uart, validate_msg));
 }
 
 static void test_uart_puts_returns_error(void **state) {
-
+    (void)state;
+    assert_int_equal(-1, Uart_puts(NULL, NULL));
 }
 
 static void test_uart_puts_returns_no_error(void **state) {
+    (void)state;
+    Uart_t uart;
+    char msg[] = "This is a test!";
+    uint8_t msg_size = sizeof(msg) / sizeof(char);
+    int idx;
+    for(idx = 0; idx < msg_size; ++idx) {
+        expect_value(register8_write, reg, &uart.D);
+        expect_value(register8_write, val, msg[idx]);
+    }
+    assert_int_equal(0, Uart_puts(&uart, msg));
+}
 
+static void test_uart_puts_returns_error_if_string_exceeds_max_size(void **state)
+{
+    char msg[UART_STRING_SIZE_MAX + 1];
+    Uart_t uart;
+    uint16_t idx;
+    uint16_t msg_size = sizeof(msg) / sizeof(char);
+    memset(msg, 'x', msg_size);
+
+    /* The -1 accounts for the fact that Uart_gets will return the error code
+    once UART_STRING_SIZE_MAX values are read. Thus, CMOCKA will complain that
+    there's one unread item for register8_read function. */
+    for(idx = 0; idx < (msg_size - 1); ++idx) {
+        expect_value(register8_write, reg, &uart.D);
+        expect_value(register8_write, val, msg[idx]);
+    }
+    assert_int_equal(-1, Uart_puts(&uart, msg));
 }
 
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_null_arguments_returns_error),
-        cmocka_unit_test(test_uart_init),
         cmocka_unit_test(test_invalid_uart_returns_error),
+        cmocka_unit_test(test_uart_init),
+        cmocka_unit_test(test_uart_write_returns_error),
+        cmocka_unit_test(test_uart_write_returns_no_error),
+        cmocka_unit_test(test_uart_write_bytes_returns_error),
+        cmocka_unit_test(test_uart_write_bytes_returns_no_error),
+        cmocka_unit_test(test_uart_read_returns_no_error),
+        cmocka_unit_test(test_uart_read_returns_error),
+        cmocka_unit_test(test_uart_read_bytes_returns_no_error),
+        cmocka_unit_test(test_uart_read_bytes_returns_error),
+        cmocka_unit_test(test_uart_putc_returns_error),
+        cmocka_unit_test(test_uart_putc_returns_no_error),
+        cmocka_unit_test(test_uart_getc_returns_no_error),
+        cmocka_unit_test(test_uart_getc_returns_error),
+        cmocka_unit_test(test_uart_gets_returns_error),
+        cmocka_unit_test(test_uart_gets_returns_no_error),
+        cmocka_unit_test(test_uart_gets_returns_error_if_string_exceeds_max_size),
+        cmocka_unit_test(test_uart_puts_returns_error),
+        cmocka_unit_test(test_uart_puts_returns_no_error),
+        cmocka_unit_test(test_uart_puts_returns_error_if_string_exceeds_max_size),
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

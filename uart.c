@@ -112,6 +112,47 @@ int8_t Uart_init(Uart_t* uart, Uart_conf_t* params) {
     return ret;
 }
 
+int8_t Uart_write(Uart_t* uart, uint8_t byte) {
+    int8_t ret = -1;
+    if(uart) {
+        register8_write(&uart->D, byte);
+        ret = 0;
+    }
+    return ret;
+}
+
+int8_t Uart_write_bytes(Uart_t* uart, uint8_t* bytes, uint32_t size) {
+    int8_t ret = -1;
+    uint32_t idx;
+    if(uart && bytes && (size > 0)) {
+        for(idx = 0; idx < size; ++idx) {
+            Uart_write(uart, bytes[idx]);
+        }
+        ret = 0;
+    }
+    return ret;
+}
+
+uint8_t Uart_read(Uart_t* uart) {
+    uint8_t byte = 0;
+    if(uart) {
+        byte = register8_read(&uart->D);
+    }
+    return byte;
+}
+
+int8_t Uart_read_bytes(Uart_t* uart, uint8_t* bytes, uint32_t size) {
+    int8_t ret = -1;
+    uint32_t idx;
+    if(uart && bytes && (size > 0)) {
+        for(idx = 0; idx < size; ++idx) {
+            bytes[idx] = Uart_read(uart);
+        }
+        ret = 0;
+    }
+    return ret;
+}
+
 int8_t Uart_get_default_conf(Uart_conf_t* conf) {
     int8_t ret = -1;
     if(conf) {
@@ -124,8 +165,7 @@ int8_t Uart_get_default_conf(Uart_conf_t* conf) {
 int8_t Uart_putc(Uart_t* uart, char byte) {
     int8_t ret = -1;
     if(uart) {
-        register8_write(&uart->D, (uint8_t)byte);
-        ret = 0;
+        ret = Uart_write(uart, (uint8_t)byte);
     }
     return ret;
 }
@@ -134,11 +174,10 @@ int8_t Uart_puts(Uart_t* uart, char* msg) {
     int8_t ret = -1;
     uint32_t idx = 0;
     if(uart && msg) {
-        ret = 0;
-        while((msg[idx] != '\0') && (ret != -1) && (idx < UART_STRING_SIZE_MAX))
-        {
-            ret = Uart_putc(uart, msg[idx++]);
-        }
+        do {
+            Uart_putc(uart, msg[idx]);
+        } while((msg[idx++] != '\0') && (idx < UART_STRING_SIZE_MAX));
+        ret = (idx == UART_STRING_SIZE_MAX) ? -1 : 0;
     }
     return ret;
 }
@@ -146,7 +185,7 @@ int8_t Uart_puts(Uart_t* uart, char* msg) {
 char Uart_getc(Uart_t* uart) {
     char byte = 0;
     if(uart) {
-        byte = (char)register8_read(&uart->D);
+        byte = (char)Uart_read(uart);
     }
     return byte;
 }
@@ -154,13 +193,11 @@ char Uart_getc(Uart_t* uart) {
 int8_t Uart_gets(Uart_t* uart, char* msg) {
     int8_t ret = -1;
     uint32_t idx = 0;
-    msg[0] = '0'; // Temp value different than '\0'.
     if(uart && msg) {
-        while((msg[idx] != '\0') && (idx < UART_STRING_SIZE_MAX))
-        {
-            msg[idx++] = Uart_getc(uart);
-        }
-        ret = 0;
+        do {
+            msg[idx] = Uart_getc(uart);
+        } while((msg[idx++] != '\0') && (idx < UART_STRING_SIZE_MAX));
+        ret = (idx == UART_STRING_SIZE_MAX) ? -1 : 0;
     }
     return ret;
 }

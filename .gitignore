@@ -3,3 +3,4 @@ armgcc/debug/
 armgcc/release/
 armgcc/CMakeCache.txt
 armgcc/Makefile
+armgcc/cmake_install.cmake

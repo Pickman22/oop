@@ -7,7 +7,7 @@
 
 #define UART0_OSR 16U
 #define UART_SBR_MAX 8191U
-#define UART_STRING_SIZE_MAX 65535U
+#define UART_STRING_SIZE_MAX 255U
 
 typedef enum Stop_Bit_e {Stop_1bit_e=0U, Stop_2bit_e=1U} Stop_Bit_t;
 typedef enum Bit_Mode_e {Mode_8bits_e, Mode_9bits_e} Bit_Mode_t;
@@ -49,19 +49,13 @@ char Uart_getc(Uart_t* uart);
 
 int8_t Uart_gets(Uart_t* uart, char* msg);
 
+int8_t Uart_write(Uart_t* uart, uint8_t byte);
 
+int8_t Uart_write_bytes(Uart_t*, uint8_t* bytes, uint32_t size);
 
-/*
-int8_t Uart_set_baud_rate(Uart_t* uart, Baud_Rate_t br);
+uint8_t Uart_read(Uart_t* uart);
 
-int8_t Uart_set_stop_bit(Uart_t *uart, Stop_Bit_t stopbit);
-
-int8_t Uart_bit_mode(Uart_t* uart, Bit_Mode_t bitmode);
-
-int8_t Uart_set_parity_type(Uart_t* uart, Parity_Type_t parity);
-
-int8_t Uart_set_parity_mode(Uart_t* uart, Parity_Mode_t mode);
-*/
+int8_t Uart_read_bytes(Uart_t* uart, uint8_t* bytes, uint32_t size);
 
 int8_t Uart_get_default_conf(Uart_conf_t* conf);
 
