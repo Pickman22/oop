@@ -1,8 +1,10 @@
 #include "uart.h"
 #include "reg.h"
+#include "gpio.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include "freedom.h"
 
 #define IS_UART_TX_FULL(uart) (!(register8_read(&uart->S1) & UART_S1_TDRE_MASK))
 
@@ -28,6 +30,9 @@ typedef struct _uart_map {
     uint32_t mask;
 } _uart_map_t;
 
+
+/*TODO: Use MAP_PIN_TO_PORT_INDEX and MAP_PIN_TO_PIN_NUMBER to remove rx and tx
+        members of the structure. */
 static const _uart_map_t _valid_uart_map[] = {
     {PTE1,  PTE0,  (volatile uint32_t*)UART1_BASE,   3U, (volatile uint32_t*)PORTE_BASE, 1U,  0U,  SIM_SCGC4_UART1_MASK},
     {PTE21, PTE20, (volatile uint32_t*)UART0_BASE,   4U, (volatile uint32_t*)PORTE_BASE, 21U, 20U, SIM_SCGC4_UART0_MASK},

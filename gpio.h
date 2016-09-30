@@ -5,6 +5,9 @@
 #include "MKL25Z4.h"
 #include "pins.h"
 
+#define MAP_PIN_TO_PORT_INDEX(pin) (((uint32_t)pin >> 12U) & 0x0000000F)
+#define MAP_PINNAME_TO_NUMBER(pin) ((pin & 0x000000FF) / 4U)
+
 typedef enum Direction {Gpio_Input_e, Gpio_Output_e} Gpio_Direction_e;
 typedef enum Logic {Gpio_Low_e, Gpio_High_e} Gpio_Logic_e;
 

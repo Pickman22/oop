@@ -29,11 +29,11 @@ int8_t LED_set_output(LED_e led, uint8_t val) {
 }
 
 int8_t LED_set(LED_e led) {
-    return Gpio_set(led);
+    return Gpio_clear(led);
 }
 
 int8_t LED_clear(LED_e led) {
-    return Gpio_clear(led);
+    return Gpio_set(led);
 }
 
 int8_t LED_toggle(LED_e led) {

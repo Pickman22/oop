@@ -7,9 +7,6 @@ static PORT_Type* _port_base_ptrs[] = PORT_BASE_PTRS;
 
 #define NUMBER_OF_GPIO_PORTS 5
 
-#define MAP_PIN_TO_PORT_INDEX(pin) (((uint32_t)pin >> 12U) & 0x0000000F)
-#define MAP_PINNAME_TO_NUMBER(pin) ((pin & 0x000000FF) / 4U)
-
 int8_t Gpio_init(PinName pin_name, Gpio_Direction_e dir, Gpio_Logic_e value) {
     int8_t ret = -1;
     uint8_t i = MAP_PIN_TO_PORT_INDEX(pin_name);

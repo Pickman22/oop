@@ -1,6 +1,6 @@
-#include "ringbuffer.h"
 #include <stddef.h>
 #include <string.h>
+#include "ringbuffer.h"
 
 
 int8_t Ring_buffer_init(Ring_buffer_t* buf, void* mem, uint8_t datasz,
@@ -8,7 +8,7 @@ int8_t Ring_buffer_init(Ring_buffer_t* buf, void* mem, uint8_t datasz,
 {
     int8_t ret = -1;
     if(buf && mem && (datasz > 0U) && (bufsz > 0U) &&
-      (bufsz <= BUFFER_SIZE_MAX) && (datasz <= bufsz))
+      ((bufsz * datasz) <= BUFFER_SIZE_MAX) && (datasz <= bufsz))
     {
         ret = 0;
         buf->head = mem;
@@ -49,7 +49,7 @@ int8_t Ring_buffer_pop(Ring_buffer_t* buf, void* data) {
             ret = 0;
             memcpy(data, buf->tail, buf->datasz);
             /* Update data count. */
-            buf->count = (buf->count == 0U) ? : buf->count - 1U;
+            buf->count = (buf->count == 0U) ? 0U : buf->count - 1U;
 
             /* Update pointers. */
             buf->tail = (buf->tail == buf->last) ? buf->first :
@@ -60,9 +60,17 @@ int8_t Ring_buffer_pop(Ring_buffer_t* buf, void* data) {
 }
 
 uint8_t Ring_buffer_is_full(Ring_buffer_t* buf) {
-    return (buf->count == buf->bufsz);
+    uint8_t ret = 0U;
+    if(buf) {
+        ret = (buf->count == buf->bufsz);
+    }
+    return ret;
 }
 
 uint8_t Ring_buffer_is_empty(Ring_buffer_t* buf) {
-    return (buf->count == 0U);
+    uint8_t ret = 0U;
+    if(buf) {
+        ret = (buf->count == 0U);
+    }
+    return ret;
 }
